@@ -21,6 +21,21 @@ def load_credentials():
                     credentials[username] = password
     return credentials
 
+def get_valid_user():
+    credentials = load_credentials()
+    return set(credentials.keys())
+
+def is_valid_thread(filename):
+    """验证文件是否为合法线程"""
+    if filename == CREDENTIALS_FILE or not os.path.isfile(filename):
+        return False
+    try:
+        with open(filename, 'r') as f:
+            first_line = f.readline().strip()
+            return first_line in get_valid_user()
+    except:
+        return False
+
 def save_credentials(credentials):
     with open(CREDENTIALS_FILE, 'w') as f:
         for username, password in credentials.items():
@@ -53,8 +68,10 @@ def handle_udp_request(data, addr, sock):
         if credentials.get(username) == password:
             active_users.add(username)
             sock.sendto(b"LOGIN_SUCCESS", addr)
+            print(f"{username} logged in successfully")
         else:
             sock.sendto(b"INVALID_PASSWORD", addr)
+            print(f"Invalid password for {username}")
             
     elif command.startswith("NEW"):
         _, username, password = data.decode().split(' ', 2)
@@ -62,15 +79,18 @@ def handle_udp_request(data, addr, sock):
         save_credentials(credentials)
         active_users.add(username)
         sock.sendto(b"ACCOUNT_CREATED", addr)
+        print(f"New account created for {username}")
         
     elif command == "CRT":
         thread_title, username = args.split(' ', 1)
         if os.path.exists(thread_title):
             sock.sendto(b"Thread already exists", addr)
+            print(f"Thread {thread_title} already exists")
         else:
             with open(thread_title, 'w') as f:
                 f.write(f"{username}\n")
             sock.sendto(f"Thread {thread_title} created".encode(), addr)
+            print(f"Thread {thread_title} created by {username}")
             
     elif command == "MSG":
         parts = args.split(' ', 2)
@@ -143,13 +163,22 @@ def handle_udp_request(data, addr, sock):
             sock.sendto(b"Message edited", addr)
         else:
             sock.sendto(b"Message not found or not yours", addr)
-            
+
+           
+    # elif command == "LST":
+    #     threads = [f for f in os.listdir() if os.path.isfile(f) and not f.startswith('.') and f != CREDENTIALS_FILE]
+    #     if not threads:
+    #         sock.sendto(b"No threads to list", addr)
+    #     else:
+    #         sock.sendto('\n'.join(threads).encode(), addr)
+
     elif command == "LST":
-        threads = [f for f in os.listdir() if os.path.isfile(f) and not f.startswith('.') and f != CREDENTIALS_FILE]
-        if not threads:
+        all_files = os.listdir()
+        valid_threads = [f for f in all_files if is_valid_thread(f)]
+        if not valid_threads:
             sock.sendto(b"No threads to list", addr)
         else:
-            sock.sendto('\n'.join(threads).encode(), addr)
+            sock.sendto('\n'.join(valid_threads).encode(), addr)
             
     elif command == "RDT":
         thread_title = args
@@ -256,6 +285,7 @@ def tcp_server(port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind(('0.0.0.0', port))
     sock.listen(5)
+    print(f"TCP Server started on port {port}. Waiting for clients...")
     
     while True:
         client_sock, addr = sock.accept()
@@ -279,7 +309,7 @@ def tcp_server(port):
 def udp_server(port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(('0.0.0.0', port))
-    print(f"Server started on port {port}. Waiting for clients...")
+    print(f"UDP Server started on port {port}. Waiting for clients...")
     
     while True:
         data, addr = sock.recvfrom(4096)
