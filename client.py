@@ -126,13 +126,20 @@ def main():
     # Command loop
     while True:
         print("\nEnter one of the following commands: CRT, MSG, DLT, EDT, LST, RDT, UPD, DWN, RMV, XIT")
-        command = input("> ").strip().upper()
+        # command = input("> ").strip().upper()
         
-        if not command:
-            continue
+        # if not command:
+        #     continue
             
-        parts = command.split()
-        cmd = parts[0]
+        # parts = command.split()
+        # cmd = parts[0]
+        raw_input = input("> ").strip()  # 不再直接转为大写
+        parts = raw_input.split()        # 按原样分割
+        if not parts:
+            continue
+
+        cmd = parts[0].upper()  # 仅命令部分转为大写
+        #args = parts[1:] 
         
         try:
             if cmd == "CRT" and len(parts) == 2:
@@ -143,7 +150,8 @@ def main():
             elif cmd == "MSG" and len(parts) >= 3:
                 thread_title = parts[1]
                 message = ' '.join(parts[2:])
-                response = send_udp_message(udp_sock, f"MSG {thread_title} {message} {USERNAME}", SERVER_ADDR)
+                #response = send_udp_message(udp_sock, f"MSG {thread_title} {message} {USERNAME}", SERVER_ADDR)
+                response = send_udp_message(udp_sock, f"MSG {thread_title} {USERNAME} {message} ", SERVER_ADDR)
                 print(response if response else "No response from server")
                 
             elif cmd == "DLT" and len(parts) == 3:
@@ -156,7 +164,7 @@ def main():
                 thread_title = parts[1]
                 message_num = parts[2]
                 new_message = ' '.join(parts[3:])
-                response = send_udp_message(udp_sock, f"EDT {thread_title} {message_num} {new_message} {USERNAME}", SERVER_ADDR)
+                response = send_udp_message(udp_sock, f"EDT {thread_title} {message_num} {USERNAME} {new_message}", SERVER_ADDR)
                 print(response if response else "No response from server")
                 
             elif cmd == "LST" and len(parts) == 1:

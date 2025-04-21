@@ -45,11 +45,13 @@ def handle_udp_request(data, addr, sock):
     global active_users
     
     parts = data.decode().split(' ', 1)
+    #print("This is parts",parts)
     if len(parts) < 1:
         return
         
     command = parts[0]
     args = parts[1] if len(parts) > 1 else ""
+    #print ("This is args",args)
     
     credentials = load_credentials()
     
@@ -94,6 +96,7 @@ def handle_udp_request(data, addr, sock):
             
     elif command == "MSG":
         parts = args.split(' ', 2)
+        #print("This is parts",parts)
         if len(parts) < 3:
             sock.sendto(b"Invalid arguments", addr)
             return
@@ -105,6 +108,8 @@ def handle_udp_request(data, addr, sock):
             
         with open(thread_title, 'a') as f:
             message_num = sum(1 for line in open(thread_title))  # Count lines to get message number
+            #print("This is user name",username)
+            #print("This is message",message)
             f.write(f"{message_num} {username}: {message}\n")
         sock.sendto(f"Message posted to {thread_title} thread".encode(), addr)
         
